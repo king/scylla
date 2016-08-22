@@ -1,0 +1,10 @@
+[Unit]
+Description=Scylla
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/java -Xmx32G -verbose:gc -Xloggc:/tmp/scylla.gc.log -cp "/usr/share/java/scylla/*" com.king.scylla.ScyllaCLI
+User=root
+
+[Install]
+WantedBy=multi-user.target

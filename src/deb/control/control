@@ -1,0 +1,8 @@
+Package: [[name]]
+Version: [[version]]
+Section: non-free/java
+Priority: low
+Architecture: all
+Description: [[description]]
+Maintainer: marco@king.com
+Depends: java7-runtime | java8-runtime | j2re8 | j2re1.7, systemd
