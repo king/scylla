@@ -5,6 +5,7 @@
 package com.king.scylla.connectors;
 
 import com.king.scylla.Answer;
+import com.king.scylla.Scylla;
 import com.king.scylla.VerificationAnswer;
 import com.king.scylla.meta.QConfig;
 import com.king.scylla.meta.ScyllaException;
@@ -26,7 +27,7 @@ public class DBConnector {
         return DriverManager.getConnection(connectionString, qc.getUser(), qc.getPassword());
     }
 
-    public VerificationAnswer verifyQuery() throws SQLException, JSONException {
+    public VerificationAnswer verifyQuery() throws SQLException, JSONException, ScyllaException {
         try {
             Connection conn = getConnection();
 
@@ -48,7 +49,7 @@ public class DBConnector {
             conn.close();
             return answer;
         } catch (ClassNotFoundException e) {
-            throw new SQLException(qc.getScope().classNotFound());
+            throw new ScyllaException(qc.getScope().classNotFound());
         }
     }
 
@@ -83,19 +84,17 @@ public class DBConnector {
 
             return answer;
         } catch (ClassNotFoundException e) {
-            throw new SQLException(qc.getScope().classNotFound());
+            throw new ScyllaException(qc.getScope().classNotFound());
         }
     }
 
-    DBConnector(QConfig qc, String connectorClass, String connectionString) {
+    public DBConnector(QConfig qc) throws ScyllaException {
         this.qc = qc;
-        this.connectorClass = connectorClass;
-        this.connectionString = connectionString;
-    }
-
-    public DBConnector(QConfig qc) {
-        this.qc = qc;
-        this.connectionString = qc.getConf().getJDBCStringForSope(qc.getScope());
+        this.connectionString = qc.getJDBCString();
         this.connectorClass = qc.getScope().getConnectorClass();
+
+        if(this.connectionString == null) {
+            throw new ScyllaException("No JDBC string provided explicitly and no default one configured.");
+        }
     }
 }

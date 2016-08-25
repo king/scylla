@@ -55,7 +55,7 @@ public class MetaTest {
         properties.setProperty("hive_jdbcstring", ex);
         ScyllaConf sc = new ScyllaConf(properties);
 
-        assertTrue(sc.getJDBCStringForSope(HIVE).equals("example"));
+        assertTrue(sc.getDefaultJDBCStringForSope(HIVE).equals("example"));
     }
 
     @Test

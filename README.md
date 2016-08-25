@@ -48,10 +48,10 @@ This might change in the future (especially the first).
 Also, keep in mind that Scylla caches the full data set so if your job involves streaming through your result sets
 (e.g. through a `select * from ... where ... order by ...`) this will be an extra step, so it will be very inefficient.
 
-How do I build it?
-------------------
+How do I run it?
+----------------
 
-You need `maven` and `jdk8`. Compile everything with `mvn package` and you'll get a Debian package to install in your
+Compile everything with `mvn package` and you'll get a Debian package to install in your
 favourite Linux machine, which, once installed, starts scylla as a service. To stop it:
 
 `# systemctl stop scylla.service`
@@ -59,6 +59,24 @@ favourite Linux machine, which, once installed, starts scylla as a service. To s
 Scylla depends *at runtime* on the Impala, Exasol and Redshift JDBC drivers, which you need to have in your classpath
 (`/usr/share/java/scylla` if you install the Debian package). If those drivers aren't found Scylla will
 still work but you'll only have Hive and Impala.
+
+You might need a configuration file (`/etc/scylla.properties` by default) with the following options:
+
+### JDBC Strings
+
+They're all optional and they can be overridden by setting `jdbcstring` explicitly in your queries.
+
+* `hive_jdbcstring=...`
+* `exasol_jdbcstring=...`
+* `redshift_jdbcstring=...`
+* `impala_jdbcstring=...`
+
+### Other parameters
+
+Again, all optional.
+
+* `cache_path=/tmp/scylla.fcache`: Path for Scylla's cache
+* `cache_lifetime_days=7`: Scylla's cache's lifetime (in days)
 
 How does it work?
 -----------------
@@ -72,8 +90,8 @@ $ telnet 127.0.0.1 30666
 Trying 127.0.0.1...
 Connected to 127.0.0.1.
 Escape character is '^]'.
-{"query": "desc db.tablename", "user": "somebody"}
-{"res":"some_awful_base64_string","ok":"yes","cols":["col_name","data_type","comment"],"status":"done"}
+{"query": "desc dual", "user": "somebody"}
+{"res":"QlpoOTFBWSZTWW1IW+8AAAibgBAEABAACq4nxCogACGoxTTJoz1PShTCaaA0xGqR4HgJsWoLzqIw\r\ndPQqrLt2KKE5F7ezn8XckU4UJBtSFvvA","ok":"yes","cols":["col_name","data_type","comment"],"status":"done"}
 Connection closed by foreign host.
 $
 ```
@@ -92,6 +110,7 @@ Questions must be minified one-line JSON strings with a trailing newline:
     "force": False,                  # (optional) tells scylla to ignore cached results: default is false
     "quiet": False,                  # (optional) to be used in loops to simulate synchronous querying: default is false
     "update": False                  # (optional) for update statements, if true queries won't return data sets; default is false
+    "jdbcstring": "jdbc:hive2://..." # (optional) JDBC string for the current query.
 }
 ```
 

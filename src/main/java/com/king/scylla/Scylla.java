@@ -28,7 +28,7 @@ import static com.king.scylla.Answer.PeekStatus;
 import static com.king.scylla.Answer.answerFromJSONObject;
 import static com.king.scylla.Answer.emptyAnswer;
 import static com.king.scylla.LogColouriser.whiteOnBlack;
-import static com.king.scylla.meta.Scope.*;
+import static com.king.scylla.meta.Scope.HIVE;
 import static org.apache.commons.lang3.StringEscapeUtils.escapeJson;
 
 public class Scylla implements Runnable {
@@ -101,8 +101,8 @@ public class Scylla implements Runnable {
                 }
                 return answer;
             } else {
-                log.info(logColouriser.cuteLog(qc.getUser(), String.format("Cached version of query '%s' found ... good!",
-                        whiteOnBlack(shorten(query)))));
+                log.info(logColouriser.cuteLog(qc.getUser(),
+                        String.format("Cached version of query '%s' found ... good!", whiteOnBlack(shorten(query)))));
                 Answer answer = answerFromJSONObject(fc.get(key));
                 if (answer.hasErr()) {
                     log.warn(logColouriser.cuteLog(qc.getUser(), String.format("Something went wrong with that query, " +
@@ -114,10 +114,12 @@ public class Scylla implements Runnable {
             if (force) {
                 // not necessary but better to be safe than sorry
                 fc.delete(key);
-                log.info(logColouriser.cuteLog(qc.getUser(), String.format("Ignoring cached version for %s '%s'. Querying %s.",
+                log.info(logColouriser.cuteLog(qc.getUser(),
+                        String.format("Ignoring cached version for %s '%s'. Querying %s.",
                         logColouriser.colorise("query"), whiteOnBlack(shorten(query)), scope.getName())));
             } else {
-                log.info(logColouriser.cuteLog(qc.getUser(), String.format("No cached version found for %s '%s'. Querying %s.",
+                log.info(logColouriser.cuteLog(qc.getUser(),
+                        String.format("No cached version found for %s '%s'. Querying %s.",
                         logColouriser.colorise("query"), whiteOnBlack(shorten(query)), scope.getName())));
             }
             VerificationAnswer v = connector.verifyQuery();
@@ -237,12 +239,11 @@ public class Scylla implements Runnable {
 
                         if (qc.getScope() == HIVE && qc.getConf().supportsHive()) {
                             connector = new HiveConnector(qc);
-                        }
-                        else if (qc.getConf().isSupported(qc.getScope())) {
+                        } else if (qc.getConf().isSupported(qc.getScope())) {
                             connector = new DBConnector(qc);
                         } else {
                             throw new ScyllaException(String.format("Scope %s not configured! Check " +
-                                    "'/etc/scylla.properties' and make sure the driver is installed!",
+                                            "'/etc/scylla.properties' and make sure the driver is installed!",
                                     qc.getScope()));
                         }
 

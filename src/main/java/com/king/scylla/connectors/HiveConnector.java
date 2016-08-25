@@ -7,7 +7,6 @@ package com.king.scylla.connectors;
 import com.king.scylla.Answer;
 import com.king.scylla.VerificationAnswer;
 import com.king.scylla.meta.QConfig;
-import com.king.scylla.meta.Scope;
 import com.king.scylla.meta.ScyllaException;
 import org.apache.hive.jdbc.HiveStatement;
 import org.apache.logging.log4j.LogManager;
@@ -18,11 +17,13 @@ import java.io.IOException;
 import java.sql.*;
 import java.util.List;
 
+import static com.king.scylla.meta.Scope.HIVE;
+
 public class HiveConnector extends DBConnector {
     private static final Logger log = LogManager.getLogger(HiveConnector.class.getName());
 
     @Override
-    public VerificationAnswer verifyQuery() throws SQLException, JSONException {
+    public VerificationAnswer verifyQuery() throws SQLException, JSONException, ScyllaException {
         try {
             // Use EXPLAIN instead of preparing the statement.
             String equery = "explain " + qc.getQuery();
@@ -56,7 +57,7 @@ public class HiveConnector extends DBConnector {
             conn.close();
             return answer;
         } catch (ClassNotFoundException e) {
-            throw new SQLException("Hive connector isn't working");
+            throw new ScyllaException(HIVE.classNotFound());
         }
     }
 
@@ -129,14 +130,11 @@ public class HiveConnector extends DBConnector {
             conn.close();
             return answer;
         } catch (ClassNotFoundException e) {
-            throw new SQLException("Hive connector isn't working");
+            throw new ScyllaException(HIVE.classNotFound());
         }
     }
 
-    public HiveConnector(QConfig qc) {
-        super(qc, "org.apache.hive.jdbc.HiveDriver",
-                qc.isLocalhost() ?
-                        "jdbc:hive2://localhost:10000/default" :
-                        qc.getConf().getJDBCStringForSope(Scope.HIVE));
+    public HiveConnector(QConfig qc) throws ScyllaException {
+        super(qc);
     }
 }

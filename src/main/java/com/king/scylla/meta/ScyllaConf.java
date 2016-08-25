@@ -8,9 +8,11 @@ import org.apache.commons.lang.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -38,13 +40,15 @@ public class ScyllaConf {
 
     public ScyllaConf check() throws ScyllaException {
         for(Scope scope : Scope.values()) {
-            if (getJDBCStringForSope(scope) != null) {
-                try {
-                    Class.forName(scope.getConnectorClass());
-                    connectors.add(scope);
-                } catch (ClassNotFoundException e) {
-                    log.warn(scope.classNotFound());
+            try {
+                Class.forName(scope.getConnectorClass());
+                connectors.add(scope);
+                if(getDefaultJDBCStringForSope(scope) == null) {
+                    log.warn(String.format("%s should work, but there is no default JDBC string for it. You should " +
+                    "explicitly specify it in your queries.", scope.getName()));
                 }
+            } catch (ClassNotFoundException e) {
+                log.warn(scope.classNotFound());
             }
         }
 
@@ -61,10 +65,10 @@ public class ScyllaConf {
     }
 
     public void init(Properties properties) {
-        setJDBCStringForScope(HIVE, properties.getProperty("hive_jdbcstring"));
-        setJDBCStringForScope(EXASOL, properties.getProperty("exasol_jdbcstring"));
-        setJDBCStringForScope(REDSHIFT, properties.getProperty("redshift_jdbcstring"));
-        setJDBCStringForScope(IMPALA, properties.getProperty("impala_jdbcstring"));
+        setDefaultJDBCStringForScope(HIVE, properties.getProperty("hive_jdbcstring"));
+        setDefaultJDBCStringForScope(EXASOL, properties.getProperty("exasol_jdbcstring"));
+        setDefaultJDBCStringForScope(REDSHIFT, properties.getProperty("redshift_jdbcstring"));
+        setDefaultJDBCStringForScope(IMPALA, properties.getProperty("impala_jdbcstring"));
 
         if (properties.containsKey("cache_path")) {
             setCachePath(properties.getProperty("cache_path"));
@@ -93,6 +97,10 @@ public class ScyllaConf {
         Properties props = new Properties();
         InputStream ifs = null;
         this.filename = filename;
+        if(!(new File(filename).exists())) {
+            log.warn("`/etc/scylla.properties` not found. You'll need to specify JDBC strings at runtime manually.");
+            return;
+        }
 
         try {
             ifs = new FileInputStream(filename);
@@ -120,7 +128,7 @@ public class ScyllaConf {
         init(props);
     }
 
-    public String getJDBCStringForSope(Scope scope) {
+    public String getDefaultJDBCStringForSope(Scope scope) {
         switch (scope) {
             case HIVE:
                 return JDBCStrings.getOrDefault(HIVE, null);
@@ -135,7 +143,7 @@ public class ScyllaConf {
         }
     }
 
-    public void setJDBCStringForScope(Scope scope, String string) {
+    public void setDefaultJDBCStringForScope(Scope scope, String string) {
         JDBCStrings.put(scope, string);
     }
 

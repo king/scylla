@@ -30,18 +30,14 @@ public class QConfig {
 
     private List<String> hparams;
 
-    private boolean redshiftDriver = true;
-    private boolean localhost = false;
-
     private boolean peek = false;
 
-    private boolean reckless = false;
-
-    private static String[] booleanFields = new String[]{"force", "quiet", "update", "rshdrv", "peek", "reckless"};
+    private static String[] booleanFields = new String[]{"force", "quiet", "update", "peek", "reckless"};
 
     private LogColouriser logColouriser;
 
     private String errorMessage;
+    private String JDBCString;
 
     public QConfig(Scope scope, String query, String user) {
         this.query = query;
@@ -61,10 +57,6 @@ public class QConfig {
         return query;
     }
 
-    public void setQuery(String query) {
-        this.query = query;
-    }
-
     public Scope getScope() {
         return scope;
     }
@@ -75,10 +67,6 @@ public class QConfig {
 
     public String getUser() {
         return user;
-    }
-
-    public void setUser(String user) {
-        this.user = user;
     }
 
     public String getPassword() {
@@ -129,13 +117,6 @@ public class QConfig {
         this.hparams = hparams;
     }
 
-    public boolean isRedshiftDriver() {
-        return redshiftDriver;
-    }
-
-    public void setRedshiftDriver(boolean redshiftDriver) {
-        this.redshiftDriver = redshiftDriver;
-    }
 
     public LogColouriser getLogColouriser() {
         return logColouriser;
@@ -143,14 +124,6 @@ public class QConfig {
 
     public void setLogColouriser(LogColouriser logColouriser) {
         this.logColouriser = logColouriser;
-    }
-
-    public boolean isLocalhost() {
-        return localhost;
-    }
-
-    public void setLocalhost(boolean localhost) {
-        this.localhost = localhost;
     }
 
     public boolean isPeek() {
@@ -161,12 +134,12 @@ public class QConfig {
         this.peek = peek;
     }
 
-    public boolean isReckless() {
-        return reckless;
+    public String getJDBCString() {
+        return JDBCString != null ? JDBCString : getConf().getDefaultJDBCStringForSope(scope);
     }
 
-    public void setReckless(boolean reckless) {
-        this.reckless = reckless;
+    private void setJDBCString(String JDBCString) {
+        this.JDBCString = JDBCString;
     }
 
     public String getErrorMessage() {
@@ -238,6 +211,11 @@ public class QConfig {
                 }
             }
 
+            if (o.has("jdbcstring")) {
+                field = "jdbcstring";
+                validateStringParam(o, field);
+            }
+
             if (o.has("hparams")) {
                 field = "hparams";
                 validateStringArrayParam(o, field);
@@ -268,7 +246,6 @@ public class QConfig {
             qc.setForce(false);
             qc.setQuiet(false);
             qc.setUpdate(false);
-            qc.setRedshiftDriver(true);
 
             if (instruction.has("expire")) {
                 qc.setExpire(instruction.getInt("expire"));
@@ -282,18 +259,15 @@ public class QConfig {
             if (instruction.has("update")) {
                 qc.setUpdate(instruction.getBoolean("update"));
             }
-            if (instruction.has("rsdrv")) {
-                qc.setUpdate(instruction.getBoolean("rsdrv"));
-            }
             if (instruction.has("peek")) {
                 qc.setPeek(instruction.getBoolean("peek"));
-            }
-            if (instruction.has("reckless")) {
-                qc.setReckless(instruction.getBoolean("reckless"));
             }
             if (instruction.has("scope")) {
                 sscope = instruction.getString("scope");
                 qc.setScope(Scope.getScopeFromShortName(sscope));
+            }
+            if (instruction.has("jdbcstring") && (instruction.getString("jdbcstring") != null)) {
+                qc.setJDBCString(instruction.getString("jdbcstring"));
             }
             if (instruction.has("password") && (instruction.getString("password") != null)) {
                 qc.setPassword(instruction.getString("password"));
