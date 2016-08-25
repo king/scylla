@@ -37,18 +37,6 @@ public class MetaTest {
 
 
     @Test
-    public void emptyScyllaConfTest() {
-        ScyllaConf sc = new ScyllaConf(new Properties());
-        boolean valid = true;
-        try {
-            sc.check();
-        } catch (ScyllaException e) {
-            valid = false;
-        }
-        assertFalse(valid);
-    }
-
-    @Test
     public void minimalScyllaConfTest() {
         Properties properties = new Properties();
         String ex = "example";
