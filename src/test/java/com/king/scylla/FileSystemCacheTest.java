@@ -5,18 +5,28 @@
 package com.king.scylla;
 
 import org.joda.time.DateTime;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Date;
 import java.util.Random;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class FileSystemCacheTest {
-    FileSystemCache fc = new FileSystemCache("/tmp/scylla.fcache");
+    FileSystemCache fc;
+    String path = "/tmp/test.scylla.fcache." + Math.abs(new Random().nextLong()) + "." + new Date().getTime();
 
-    public FileSystemCacheTest() throws FileSystemCacheException {
+    @Before
+    public void init() throws FileSystemCacheException {
+        fc = new FileSystemCache(path);
     }
 
     private String getRandomKey() {
@@ -55,5 +65,12 @@ public class FileSystemCacheTest {
         assertFalse(fc.locked(k));
 
         cleanElement(k);
+    }
+
+    @After
+    public void cleanup() throws IOException {
+        Path p = Paths.get(path);
+        Files.walk(p).map(Path::toFile).forEach(File::delete);
+        Files.delete(p);
     }
 }
