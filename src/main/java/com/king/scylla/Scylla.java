@@ -165,7 +165,7 @@ public class Scylla implements Runnable {
                     logColouriser.colorise("query"), e.getMessage())));
             fc.unlock(key);
             fc.delete(key);
-            answer.ok(false).err(e.getMessage());
+            answer.ok(false).err(e.getMessage() != null ? e.getMessage() : "null");
             fc.set(key, answer.toString());
             if (e instanceof IllegalStateException) {
                 fc.expire(key, 3 * 86400);
