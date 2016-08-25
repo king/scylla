@@ -43,8 +43,8 @@ public class Scylla implements Runnable {
 
     private Socket socket;
 
-    private String genKey(String query) {
-        return "scylla|" + query;
+    private String genKey(QConfig qc) {
+        return "scylla|" + qc.getJDBCString() + "|" + qc.getQuery();
     }
 
     private String shorten(String query) {
@@ -67,7 +67,7 @@ public class Scylla implements Runnable {
 
     private Answer getPeekAnswer(QConfig qc) throws FileSystemCacheException {
         FileSystemCache fc = new FileSystemCache(conf.getCachePath());
-        String key = genKey(qc.getQuery());
+        String key = genKey(qc);
 
         Answer peekAnswer = emptyAnswer().ok(true).status(PEEK);
 
@@ -90,7 +90,7 @@ public class Scylla implements Runnable {
         FileSystemCache fc = new FileSystemCache(conf.getCachePath());
         Scope scope = qc.getScope();
         String query = qc.getQuery();
-        String key = genKey(query);
+        String key = genKey(qc);
 
         if (fc.exists(key) && !force) {
             if (fc.locked(key)) {
@@ -153,7 +153,7 @@ public class Scylla implements Runnable {
         String query = qc.getQuery();
 
         FileSystemCache fc = new FileSystemCache(conf.getCachePath());
-        String key = genKey(query);
+        String key = genKey(qc);
 
         Answer answer = emptyAnswer();
 
