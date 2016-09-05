@@ -134,7 +134,7 @@ public class ScyllaConf {
     }
 
     // used only in tests.
-    ScyllaConf(Properties props) {
+    public ScyllaConf(Properties props) {
         this.filename = "";
         init(props);
     }

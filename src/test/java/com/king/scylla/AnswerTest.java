@@ -6,6 +6,7 @@ package com.king.scylla;
 
 import com.google.common.base.Charsets;
 import com.king.scylla.meta.QConfig;
+import com.king.scylla.meta.ScyllaConf;
 import com.king.scylla.meta.ScyllaException;
 import com.mockrunner.mock.jdbc.MockResultSet;
 import org.apache.commons.codec.binary.Base64;
@@ -21,6 +22,7 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.ParseException;
+import java.util.Properties;
 
 import static com.king.scylla.Answer.answerFromResultSet;
 import static com.king.scylla.VerificationAnswer.emptyVerificationAnswer;
@@ -67,6 +69,7 @@ public class AnswerTest {
 
     private QConfig prepareDummyQConfig() {
         QConfig qc = new QConfig(HIVE, "something", "user");
+        qc.setConf(new ScyllaConf(new Properties()));
         qc.setLogColouriser(new LogColouriser());
         return qc;
     }
