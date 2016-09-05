@@ -106,12 +106,36 @@ public class Answer {
         return new Answer(jo);
     }
 
-    private static BZip2CompressorOutputStream CSVDataSetToBZ2(ResultSet rs, BZip2CompressorOutputStream bz)
+    private static void hardLimit(long n) throws ScyllaException {
+        if (n >= 150000000) {
+            throw new ScyllaException("Your result set is too big. Please add a limit or try getting the data " +
+                    "some other way (e.g. create a table and export it to a CSV file manually).");
+        }
+
+    }
+
+    private static BZip2CompressorOutputStream CSVDataSetToBZ2(QConfig qc, ResultSet rs, BZip2CompressorOutputStream bz)
             throws IOException, ScyllaException {
+        Logger log = LogManager.getLogger(Answer.class.getName());
+        LogColouriser logc = qc.getLogColouriser();
         OutputStreamWriter o = new OutputStreamWriter(bz);
         CSVPrinter p = new CSVPrinter(o, CSVFormat.TDF.withQuoteMode(QuoteMode.MINIMAL));
+        long j = 0;
 
         try {
+            int nc = rs.getMetaData().getColumnCount();
+            while (rs.next()) {
+                Object[] row = new Object[nc];
+                for(int i = 1; i <= nc; i++) {
+                    row[i-1] = rs.getObject(i);
+                }
+
+                p.printRecord(row);
+
+                j++;
+                hardLimit(j * nc);
+            }
+
             p.printRecords(rs);
         } catch (SQLException | IOException e) {
             p.close();
@@ -123,6 +147,8 @@ public class Answer {
         p.close();
         o.close();
 
+        log.debug(logc.cuteLog(qc.getUser(), String.format("Successfully fetched %d lines", j)));
+
         return bz;
     }
 
@@ -132,7 +158,7 @@ public class Answer {
         Logger log = LogManager.getLogger(Answer.class.getName());
         LogColouriser logc = qc.getLogColouriser();
 
-        int numColumns = rs.getMetaData().getColumnCount();
+        int nc = rs.getMetaData().getColumnCount();
 
         bz.write("[".getBytes("UTF-8"));
 
@@ -147,10 +173,7 @@ public class Answer {
             bz.write(obj.toString().getBytes("UTF-8"));
 
             j++;
-            if (j * numColumns >= 150000000) {
-                throw new ScyllaException("Your result set is too big. Please add a limit or try getting the data " +
-                        "some other way (e.g. create a table and export it to a CSV file manually).");
-            }
+            hardLimit(j * nc);
         }
 
         bz.write("]".getBytes("UTF-8"));
@@ -163,7 +186,7 @@ public class Answer {
     /*
      * this builds the actual answer containing the data. a JSON object containing two fields:
      * 'cols': array column names
-     * 'res': a base64 blob that once decoded and decompressed (bz2) is a JSON object that can be loaded from
+     * 'res': a base64 blob that once decoded and decompressed (bz2) is a JSON/CSV object that can be loaded from
      *        pandas.
      */
     public static Answer answerFromResultSet(QConfig qc, ResultSet rs)
@@ -183,7 +206,7 @@ public class Answer {
 
         try {
             if(qc.getConf().isCsv()) {
-                bz = CSVDataSetToBZ2(rs, bz);
+                bz = CSVDataSetToBZ2(qc, rs, bz);
             } else {
                 bz = JSONDataSetToBZ2(qc, rs, bz);
             }
