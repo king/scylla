@@ -32,6 +32,9 @@ public class ScyllaConf {
     // cap for server-side caching, if you really need to store data
     private int cacheLifeTimeDays = 7;
 
+    // use CSV serialisation (experimental)
+    private Boolean csv;
+
     private Set<Scope> connectors = new HashSet<>();
 
     private static final Logger log = LogManager.getLogger(ScyllaConf.class.getName());
@@ -69,6 +72,14 @@ public class ScyllaConf {
         setDefaultJDBCStringForScope(EXASOL, properties.getProperty("exasol_jdbcstring"));
         setDefaultJDBCStringForScope(REDSHIFT, properties.getProperty("redshift_jdbcstring"));
         setDefaultJDBCStringForScope(IMPALA, properties.getProperty("impala_jdbcstring"));
+
+        String csv = properties.getProperty("csv");
+        if (csv != null) {
+            csv = csv.toLowerCase().trim();
+            setCsv(csv.equals("1") || csv.equals("true") || csv.equals("yes"));
+        } else {
+            setCsv(false);
+        }
 
         if (properties.containsKey("cache_path")) {
             setCachePath(properties.getProperty("cache_path"));
@@ -173,5 +184,13 @@ public class ScyllaConf {
 
     public String getFilename() {
         return filename;
+    }
+
+    public Boolean isCsv() {
+        return csv;
+    }
+
+    public void setCsv(Boolean csv) {
+        this.csv = csv;
     }
 }

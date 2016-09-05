@@ -8,6 +8,9 @@ import com.king.scylla.meta.QConfig;
 import com.king.scylla.meta.ScyllaException;
 import org.apache.commons.codec.binary.Base64OutputStream;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.csv.QuoteMode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
@@ -16,6 +19,7 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -102,36 +106,39 @@ public class Answer {
         return new Answer(jo);
     }
 
-    /*
-     * this builds the actual answer containing the data. a JSON object containing two fields:
-     * 'cols': array column names
-     * 'res': a base64 blob that once decoded and decompressed (bz2) is a JSON object that can be loaded from
-     *        pandas.
-     */
-    public static Answer answerFromResultSet(QConfig qc, ResultSet rs)
+    private static BZip2CompressorOutputStream CSVDataSetToBZ2(ResultSet rs, BZip2CompressorOutputStream bz)
+            throws IOException, ScyllaException {
+        OutputStreamWriter o = new OutputStreamWriter(bz);
+        CSVPrinter p = new CSVPrinter(o, CSVFormat.TDF.withQuoteMode(QuoteMode.MINIMAL));
+
+        try {
+            p.printRecords(rs);
+        } catch (SQLException | IOException e) {
+            p.close();
+            o.close();
+
+            throw new ScyllaException(e.getMessage());
+        }
+
+        p.close();
+        o.close();
+
+        return bz;
+    }
+
+
+    private static BZip2CompressorOutputStream JSONDataSetToBZ2(QConfig qc, ResultSet rs, BZip2CompressorOutputStream bz)
             throws SQLException, JSONException, IOException, ScyllaException {
         Logger log = LogManager.getLogger(Answer.class.getName());
-        ResultSetMetaData rsmd = rs.getMetaData();
         LogColouriser logc = qc.getLogColouriser();
 
-        JSONObject mo = new JSONObject();
-
-        ByteArrayOutputStream w = new ByteArrayOutputStream();
-        Base64OutputStream b64os = new Base64OutputStream(w);
-        BZip2CompressorOutputStream bz = new BZip2CompressorOutputStream(b64os);
+        int numColumns = rs.getMetaData().getColumnCount();
 
         bz.write("[".getBytes("UTF-8"));
-
-        JSONArray cols = new JSONArray();
-
-        for (int i = 1; i <= rsmd.getColumnCount(); i++) {
-            cols.put(rsmd.getColumnLabel(i).toLowerCase());
-        }
 
         long j = 0;
 
         while (rs.next()) {
-            int numColumns = rsmd.getColumnCount();
             JSONObject obj = rowToJSON(rs);
 
             if (j > 0) {
@@ -141,9 +148,6 @@ public class Answer {
 
             j++;
             if (j * numColumns >= 150000000) {
-                w.close();
-                bz.close();
-                b64os.close();
                 throw new ScyllaException("Your result set is too big. Please add a limit or try getting the data " +
                         "some other way (e.g. create a table and export it to a CSV file manually).");
             }
@@ -151,14 +155,49 @@ public class Answer {
 
         bz.write("]".getBytes("UTF-8"));
 
-        w.close();
-        bz.close();
-        b64os.close();
-
         log.debug(logc.cuteLog(qc.getUser(), String.format("Successfully fetched %d lines", j)));
+
+        return bz;
+    }
+
+    /*
+     * this builds the actual answer containing the data. a JSON object containing two fields:
+     * 'cols': array column names
+     * 'res': a base64 blob that once decoded and decompressed (bz2) is a JSON object that can be loaded from
+     *        pandas.
+     */
+    public static Answer answerFromResultSet(QConfig qc, ResultSet rs)
+            throws SQLException, JSONException, IOException, ScyllaException {
+        JSONObject mo = new JSONObject();
+        Logger log = LogManager.getLogger(Answer.class.getName());
+
+        ByteArrayOutputStream w = new ByteArrayOutputStream();
+        Base64OutputStream b64os = new Base64OutputStream(w);
+        BZip2CompressorOutputStream bz = new BZip2CompressorOutputStream(b64os);
+
+        JSONArray cols = new JSONArray();
+
+        for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
+            cols.put(rs.getMetaData().getColumnLabel(i).toLowerCase());
+        }
+
+        try {
+            if(qc.getConf().isCsv()) {
+                bz = CSVDataSetToBZ2(rs, bz);
+            } else {
+                bz = JSONDataSetToBZ2(qc, rs, bz);
+            }
+        } catch (ScyllaException e) {
+            log.error(e.getMessage());
+        } finally {
+            w.close();
+            bz.close();
+            b64os.close();
+        }
 
         mo.put("cols", cols);
         mo.put("res", w.toString("UTF-8"));
+        mo.put("format", qc.getConf().isCsv() ? "csv" : "json");
 
         return new Answer(mo);
     }

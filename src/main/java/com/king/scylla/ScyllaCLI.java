@@ -8,6 +8,7 @@ import com.king.scylla.meta.ScyllaConf;
 import com.king.scylla.meta.ScyllaException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.plugins.convert.TypeConverters;
 import org.json.JSONException;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -28,6 +29,9 @@ public class ScyllaCLI {
     @Option(name = "--config", aliases = {"-c"}, usage = "-c /etc/scylla.properties")
     private String config = "/etc/scylla.properties";
 
+    @Option(name = "--csv", usage = "--csv")
+    private Boolean csv = null;
+
     static final Logger log = LogManager.getLogger(ScyllaCLI.class.getName());
 
     private final ExecutorService pool = Executors.newFixedThreadPool(256);
@@ -39,6 +43,10 @@ public class ScyllaCLI {
 
         ScyllaConf conf = new ScyllaConf(config).check();
         ServerSocket ss = new ServerSocket(port);
+
+        if (csv != null) {
+            conf.setCsv(csv);
+        }
 
         log.info("Scylla says hi!");
         log.info(String.format("Waiting for connections on port %d ...", port));
