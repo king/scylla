@@ -20,6 +20,7 @@ import org.json.JSONObject;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -118,7 +119,7 @@ public class Answer {
             throws IOException, ScyllaException {
         Logger log = LogManager.getLogger(Answer.class.getName());
         LogColouriser logc = qc.getLogColouriser();
-        OutputStreamWriter o = new OutputStreamWriter(bz);
+        OutputStreamWriter o = new OutputStreamWriter(bz, StandardCharsets.UTF_8);
         CSVPrinter p = new CSVPrinter(o, CSVFormat.TDF.withQuoteMode(QuoteMode.MINIMAL));
         long j = 0;
 
@@ -211,12 +212,16 @@ public class Answer {
                 bz = JSONDataSetToBZ2(qc, rs, bz);
             }
         } catch (ScyllaException e) {
-            log.error(e.getMessage());
-        } finally {
             w.close();
             bz.close();
             b64os.close();
+
+            throw new ScyllaException(e.getMessage());
         }
+
+        w.close();
+        bz.close();
+        b64os.close();
 
         mo.put("cols", cols);
         mo.put("res", w.toString("UTF-8"));
