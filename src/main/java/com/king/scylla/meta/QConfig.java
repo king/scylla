@@ -280,6 +280,8 @@ public class QConfig {
                 }
                 qc.setHParams(hparams);
             }
+
+            logColouriser.init(qc.getQuery());
         }
 
         return qc;

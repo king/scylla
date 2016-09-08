@@ -145,7 +145,7 @@ public class FileSystemCache extends Cache {
         }
     }
 
-    public void cleanup() throws CacheException {
+    private void cleanup() throws CacheException {
         String[] l = mpath.resolve("data").toFile().list();
         if (l != null) {
             for (String dir : l) {

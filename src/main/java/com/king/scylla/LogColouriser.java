@@ -24,6 +24,15 @@ public class LogColouriser {
     private int x;
     private int y;
 
+    LogColouriser() {
+        int i = (new Random()).nextInt(colours.length - 1);
+        init(i);
+    }
+
+    LogColouriser(String query) {
+        init(query);
+    }
+
     static String whiteOnBlack(String text) {
         return String.format("\033[40m\033[37m\033[1m%s\033[0m", text);
     }
@@ -50,12 +59,7 @@ public class LogColouriser {
         y = 40 + a[1];
     }
 
-    LogColouriser() {
-        int i = (new Random()).nextInt(colours.length - 1);
-        init(i);
-    }
-
-    LogColouriser(String query) {
+    public void init(String query) {
         BigInteger a;
         try {
             a = new BigInteger(MessageDigest.getInstance("MD5").digest(query.getBytes(StandardCharsets.UTF_8)));
@@ -67,4 +71,3 @@ public class LogColouriser {
         init(i);
     }
 }
-

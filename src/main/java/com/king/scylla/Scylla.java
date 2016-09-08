@@ -80,6 +80,7 @@ public class Scylla implements Runnable {
         } else {
             peekAnswer.peek(PeekStatus.NO);
         }
+
         return peekAnswer;
     }
 
@@ -176,7 +177,6 @@ public class Scylla implements Runnable {
                 fc.expire(key, 20);
             }
 
-            fc.cleanup();
             return answer;
         }
 
@@ -207,7 +207,6 @@ public class Scylla implements Runnable {
             }
         }
 
-        fc.cleanup();
         return answer;
     }
 
@@ -238,7 +237,6 @@ public class Scylla implements Runnable {
                     if (qc.getErrorMessage() != null) {
                         ow.println(emptyAnswer().ok(false).err(qc.getErrorMessage()));
                     } else {
-
                         if (!qc.isQuiet()) {
                             log.debug(logColouriser.cuteLog(qc.getUser(),
                                     String.format("Good question from %s, processing ...",

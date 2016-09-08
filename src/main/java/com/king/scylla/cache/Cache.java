@@ -27,8 +27,6 @@ public abstract class Cache {
 
     abstract public void unlock(String key) throws CacheException;
 
-    abstract public void cleanup() throws CacheException;
-
     static String hash(String text) throws CacheException {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
