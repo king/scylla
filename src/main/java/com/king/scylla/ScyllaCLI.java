@@ -4,6 +4,7 @@
 
 package com.king.scylla;
 
+import com.king.scylla.meta.Format;
 import com.king.scylla.meta.ScyllaConf;
 import com.king.scylla.meta.ScyllaException;
 import org.apache.logging.log4j.LogManager;
@@ -27,8 +28,8 @@ public class ScyllaCLI {
     @Option(name = "--config", aliases = {"-c"}, usage = "-c /etc/scylla.properties")
     private String config = "/etc/scylla.properties";
 
-    @Option(name = "--csv", usage = "--csv")
-    private Boolean csv = null;
+    @Option(name = "--format", aliases = {"-f"}, usage = "-f json")
+    private String format = "csv";
 
     private final Logger log = LogManager.getLogger(ScyllaCLI.class.getName());
 
@@ -43,8 +44,8 @@ public class ScyllaCLI {
         ScyllaConf conf = new ScyllaConf(config).check();
         ServerSocket ss = new ServerSocket(port);
 
-        if (csv != null) {
-            conf.setCsv(csv);
+        if (conf.getFormat() == null) {
+            conf.setFormat(Format.fromString(format));
         }
 
         log.info("Scylla says hi!");

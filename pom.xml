@@ -6,7 +6,7 @@
 
     <groupId>com.king</groupId>
     <artifactId>scylla</artifactId>
-    <version>1.12.1</version>
+    <version>1.13.0</version>
 
     <description>A query scheduler with tentacles.</description>
 

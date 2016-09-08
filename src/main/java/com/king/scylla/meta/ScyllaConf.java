@@ -36,8 +36,7 @@ public class ScyllaConf {
     // cap for server-side caching, if you really need to store data
     private int cacheLifeTimeDays = 7;
 
-    // use CSV serialisation (experimental)
-    private Boolean csv;
+    private Format format = null;
 
     private Set<Scope> connectors = new HashSet<>();
 
@@ -50,13 +49,13 @@ public class ScyllaConf {
     private JedisPool pool;
 
     public ScyllaConf check() throws ScyllaException {
-        for(Scope scope : Scope.values()) {
+        for (Scope scope : Scope.values()) {
             try {
                 Class.forName(scope.getConnectorClass());
                 connectors.add(scope);
-                if(getDefaultJDBCStringForSope(scope) == null) {
+                if (getDefaultJDBCStringForSope(scope) == null) {
                     log.warn(String.format("%s should work, but there is no default JDBC string for it. You should " +
-                    "explicitly specify it in your queries.", scope.getName()));
+                            "explicitly specify it in your queries.", scope.getName()));
                 }
             } catch (ClassNotFoundException e) {
                 log.warn(scope.classNotFound());
@@ -89,8 +88,11 @@ public class ScyllaConf {
         setDefaultJDBCStringForScope(REDSHIFT, properties.getProperty("redshift_jdbcstring"));
         setDefaultJDBCStringForScope(IMPALA, properties.getProperty("impala_jdbcstring"));
 
-        setCsv(yes(properties.getProperty("csv")));
         setRedis(yes(properties.getProperty("redis")));
+
+        if (properties.containsKey("format")) {
+            setFormat(Format.fromString(properties.getProperty("format")));
+        }
 
         if (properties.containsKey("cache_path")) {
             setCachePath(properties.getProperty("cache_path"));
@@ -104,13 +106,13 @@ public class ScyllaConf {
         if (properties.containsKey("redis_db")) {
             int redisDB = parseUInt(properties.getProperty("redis_db"));
 
-            if(redisDB < 0) {
+            if (redisDB < 0) {
                 log.warn("Parameter 'redis_db' wasn't parsed correctly. Defaulting to 666.");
             }
             setRedisDB(redisDB >= 0 ? redisDB : this.redisDB);
         }
 
-        if(redis) {
+        if (redis) {
             pool = new JedisPool(new JedisPoolConfig(), redisHost);
         }
 
@@ -128,7 +130,7 @@ public class ScyllaConf {
     public ScyllaConf(String filename) {
         Properties props = new Properties();
         InputStream ifs = null;
-        if(!(new File(filename).exists())) {
+        if (!(new File(filename).exists())) {
             log.warn("`/etc/scylla.properties` not found. You'll need to specify JDBC strings at runtime manually.");
             return;
         }
@@ -201,16 +203,17 @@ public class ScyllaConf {
         this.cachePath = cachePath;
     }
 
-    public Boolean isCsv() {
-        return csv;
+    public Format getFormat() {
+        return format;
     }
 
-    public void setCsv(Boolean csv) {
-        this.csv = csv;
+    public void setFormat(Format format) {
+        this.format = format;
+        log.debug(String.format("Using %s as serialisation format", format));
     }
 
     private void setRedis(boolean redis) {
-        if(redis) {
+        if (redis) {
             log.info("Using Redis to cache. Query responsibly.");
         }
         this.redis = redis;

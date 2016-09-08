@@ -4,6 +4,7 @@
 
 package com.king.scylla;
 
+import com.king.scylla.meta.Format;
 import com.king.scylla.meta.QConfig;
 import com.king.scylla.meta.ScyllaException;
 import org.apache.commons.codec.binary.Base64OutputStream;
@@ -120,7 +121,7 @@ public class Answer {
         Logger log = LogManager.getLogger(Answer.class.getName());
         LogColouriser logc = qc.getLogColouriser();
         OutputStreamWriter o = new OutputStreamWriter(bz, StandardCharsets.UTF_8);
-        CSVPrinter p = new CSVPrinter(o, CSVFormat.TDF.withQuoteMode(QuoteMode.MINIMAL));
+        CSVPrinter p = new CSVPrinter(o, CSVFormat.TDF.withQuoteMode(QuoteMode.MINIMAL).withNullString(""));
         long j = 0;
 
         try {
@@ -205,10 +206,12 @@ public class Answer {
         }
 
         try {
-            if(qc.getConf().isCsv()) {
+            if(qc.getConf().getFormat().equals(Format.CSV)) {
                 bz = CSVDataSetToBZ2(qc, rs, bz);
-            } else {
+            } else if (qc.getConf().getFormat().equals(Format.JSON)) {
                 bz = JSONDataSetToBZ2(qc, rs, bz);
+            } else {
+                throw new ScyllaException("Got asked to serialise in an unkown format.");
             }
         } catch (ScyllaException e) {
             w.close();
@@ -224,7 +227,7 @@ public class Answer {
 
         mo.put("cols", cols);
         mo.put("res", w.toString("UTF-8"));
-        mo.put("format", qc.getConf().isCsv() ? "csv" : "json");
+        mo.put("format", qc.getConf().getFormat().toString().toLowerCase());
 
         return new Answer(mo);
     }

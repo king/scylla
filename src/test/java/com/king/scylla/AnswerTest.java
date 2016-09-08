@@ -5,6 +5,7 @@
 package com.king.scylla;
 
 import com.google.common.base.Charsets;
+import com.king.scylla.meta.Format;
 import com.king.scylla.meta.QConfig;
 import com.king.scylla.meta.ScyllaConf;
 import com.king.scylla.meta.ScyllaException;
@@ -69,7 +70,9 @@ public class AnswerTest {
 
     private QConfig prepareDummyQConfig() {
         QConfig qc = new QConfig(HIVE, "something", "user");
-        qc.setConf(new ScyllaConf(new Properties()));
+        ScyllaConf sc = new ScyllaConf(new Properties());
+        sc.setFormat(Format.JSON);
+        qc.setConf(sc);
         qc.setLogColouriser(new LogColouriser());
         return qc;
     }
@@ -89,7 +92,7 @@ public class AnswerTest {
     }
 
     @Test
-    public void answerFromResultSetTest() throws SQLException, IOException, ScyllaException, ParseException {
+    public void answerFromJSONResultSetTest() throws SQLException, IOException, ScyllaException, ParseException {
         ResultSet rs = prepareResultSet();
         QConfig qc = prepareDummyQConfig();
 
