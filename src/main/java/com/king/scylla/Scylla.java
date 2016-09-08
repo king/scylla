@@ -5,6 +5,8 @@
 package com.king.scylla;
 
 import com.google.common.base.Throwables;
+import com.king.scylla.cache.Cache;
+import com.king.scylla.cache.CacheException;
 import com.king.scylla.connectors.*;
 import com.king.scylla.meta.QConfig;
 import com.king.scylla.meta.Scope;
@@ -57,7 +59,7 @@ public class Scylla implements Runnable {
 
     // this is a bit useless right now but it will make a lot of sense with different scylla replies implemented
     // besides bare data delivery and `peek`.
-    private Answer getAnswer(QConfig qc) throws SQLException, IOException, FileSystemCacheException, ScyllaException {
+    private Answer getAnswer(QConfig qc) throws SQLException, IOException, CacheException, ScyllaException {
         if (!qc.isPeek()) {
             return getRealAnswer(qc);
         } else {
@@ -65,8 +67,8 @@ public class Scylla implements Runnable {
         }
     }
 
-    private Answer getPeekAnswer(QConfig qc) throws FileSystemCacheException {
-        FileSystemCache fc = new FileSystemCache(conf.getCachePath());
+    private Answer getPeekAnswer(QConfig qc) throws CacheException {
+        Cache fc = conf.cache();
         String key = genKey(qc);
 
         Answer peekAnswer = emptyAnswer().ok(true).status(PEEK);
@@ -81,13 +83,13 @@ public class Scylla implements Runnable {
         return peekAnswer;
     }
 
-    private Answer getRealAnswer(QConfig qc) throws IOException, FileSystemCacheException, SQLException,
+    private Answer getRealAnswer(QConfig qc) throws IOException, CacheException, SQLException,
             ScyllaException {
         boolean force = qc.isForce();
         boolean quiet = qc.isQuiet();
         boolean update = qc.isUpdate();
 
-        FileSystemCache fc = new FileSystemCache(conf.getCachePath());
+        Cache fc = conf.cache();
         Scope scope = qc.getScope();
         String query = qc.getQuery();
         String key = genKey(qc);
@@ -145,14 +147,13 @@ public class Scylla implements Runnable {
         }
     }
 
-    private Answer queryDB(QConfig qc) throws SQLException, FileSystemCacheException, IOException, ScyllaException {
+    private Answer queryDB(QConfig qc) throws SQLException, CacheException, IOException, ScyllaException {
         boolean update = qc.isUpdate();
         int expire = qc.getExpire();
 
         log.info(logColouriser.cuteLog(qc.getUser(), String.format("Launching your %s.", logColouriser.colorise("query"))));
-        String query = qc.getQuery();
 
-        FileSystemCache fc = new FileSystemCache(conf.getCachePath());
+        Cache fc = conf.cache();
         String key = genKey(qc);
 
         Answer answer = emptyAnswer();
@@ -174,6 +175,8 @@ public class Scylla implements Runnable {
             } else {
                 fc.expire(key, 20);
             }
+
+            fc.cleanup();
             return answer;
         }
 
@@ -191,18 +194,25 @@ public class Scylla implements Runnable {
                 // re-execution)
                 fc.delete(key);
             } else {
-                fc.set(key, answer.toString());
+                // if the response size of the answer is too big don't cache it.
+                if(answer.resSize() < 1000000000) {
+                    fc.set(key, answer.toString());
+                } else {
+                    log.warn("Answer is too big to be cached here.");
+                    fc.delete(key);
+                }
 
                 int cacheLifetime = conf.getCacheLifeTimeDays() * 86400;
                 fc.expire(key, expire > 0 ? Math.min(expire, cacheLifetime) : cacheLifetime);
             }
         }
 
+        fc.cleanup();
         return answer;
     }
 
     private Future<?> queryInTheBackground(final QConfig qc)
-            throws SQLException, FileSystemCacheException, IOException, ScyllaException {
+            throws SQLException, CacheException, IOException, ScyllaException {
         return pool.submit(() -> queryDB(qc));
     }
 
@@ -254,7 +264,7 @@ public class Scylla implements Runnable {
                     ow.println(emptyAnswer().ok(false).err(e.getMessage()));
                     log.error(logColouriser.cuteLog(addr, String.format("Got a malformed instruction from %s (%s)", this.addr,
                             e.getMessage())));
-                } catch (FileSystemCacheException | NotImplementedException | ScyllaException | SQLException e) {
+                } catch (CacheException | NotImplementedException | ScyllaException | SQLException e) {
                     try {
                         ow.println(emptyAnswer().ok(false).err(e.getMessage()));
                     } catch (JSONException d) {

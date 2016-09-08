@@ -7,6 +7,7 @@ package com.king.scylla;
 import org.apache.commons.io.Charsets;
 
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Random;
@@ -23,15 +24,15 @@ public class LogColouriser {
     private int x;
     private int y;
 
-    public static String whiteOnBlack(String text) {
+    static String whiteOnBlack(String text) {
         return String.format("\033[40m\033[37m\033[1m%s\033[0m", text);
     }
 
-    public static String whiteOnPink(String text) {
+    static String whiteOnPink(String text) {
         return String.format("\033[41m\033[37m\033[1m%s\033[0m", text);
     }
 
-    public String colorise(String text) {
+    String colorise(String text) {
         return String.format("\033[%dm\033[%dm\033[1m%s\033[0m", this.x, this.y, text);
     }
 
@@ -49,16 +50,16 @@ public class LogColouriser {
         y = 40 + a[1];
     }
 
-    public LogColouriser() {
+    LogColouriser() {
         int i = (new Random()).nextInt(colours.length - 1);
         init(i);
     }
 
-    public LogColouriser(String query) {
+    LogColouriser(String query) {
         BigInteger a;
         try {
-            a = new BigInteger(MessageDigest.getInstance("MD5").digest(query.getBytes(Charsets.UTF_8)));
-        } catch(NoSuchAlgorithmException e) {
+            a = new BigInteger(MessageDigest.getInstance("MD5").digest(query.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
             a = new BigInteger(String.valueOf(new Random().nextInt()));
         }
         BigInteger b = new BigInteger(String.valueOf(colours.length));

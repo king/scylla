@@ -12,7 +12,7 @@ public class VerificationAnswer extends Answer {
         return this;
     }
 
-    public boolean nobg() {
+    boolean nobg() {
         return msg.has("nobg") && msg.get("nobg").equals("yes");
     }
 

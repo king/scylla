@@ -5,7 +5,6 @@
 package com.king.scylla.connectors;
 
 import com.king.scylla.Answer;
-import com.king.scylla.Scylla;
 import com.king.scylla.VerificationAnswer;
 import com.king.scylla.meta.QConfig;
 import com.king.scylla.meta.ScyllaException;
@@ -21,7 +20,7 @@ public class DBConnector {
     private final String connectorClass;
     private final String connectionString;
 
-    public Connection getConnection() throws SQLException, ClassNotFoundException {
+    Connection getConnection() throws SQLException, ClassNotFoundException {
         Class.forName(connectorClass);
 
         return DriverManager.getConnection(connectionString, qc.getUser(), qc.getPassword());

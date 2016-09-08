@@ -4,15 +4,20 @@
 
 package com.king.scylla.meta;
 
+import com.king.scylla.cache.Cache;
+import com.king.scylla.cache.CacheException;
+import com.king.scylla.cache.FileSystemCache;
+import com.king.scylla.cache.RedisCache;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisPoolConfig;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -22,7 +27,6 @@ import static com.king.scylla.meta.Scope.REDSHIFT;
 import static com.king.scylla.meta.Scope.IMPALA;
 
 
-// TODO: add at least some of these parameters to ScyllaCLI
 public class ScyllaConf {
     private Map<Scope, String> JDBCStrings = new HashMap<>();
 
@@ -39,7 +43,11 @@ public class ScyllaConf {
 
     private static final Logger log = LogManager.getLogger(ScyllaConf.class.getName());
 
-    private final String filename;
+    private boolean redis = false;
+
+    private int redisDB = 7;
+    private String redisHost = "localhost";
+    private JedisPool pool;
 
     public ScyllaConf check() throws ScyllaException {
         for(Scope scope : Scope.values()) {
@@ -67,47 +75,59 @@ public class ScyllaConf {
         return this;
     }
 
-    public void init(Properties properties) {
+    private int parseUInt(String prop) {
+        try {
+            return Integer.parseInt(prop);
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
+    private void init(Properties properties) {
         setDefaultJDBCStringForScope(HIVE, properties.getProperty("hive_jdbcstring"));
         setDefaultJDBCStringForScope(EXASOL, properties.getProperty("exasol_jdbcstring"));
         setDefaultJDBCStringForScope(REDSHIFT, properties.getProperty("redshift_jdbcstring"));
         setDefaultJDBCStringForScope(IMPALA, properties.getProperty("impala_jdbcstring"));
 
-        String csv = properties.getProperty("csv");
-        if (csv != null) {
-            csv = csv.toLowerCase().trim();
-            setCsv(csv.equals("1") || csv.equals("true") || csv.equals("yes"));
-        } else {
-            setCsv(false);
-        }
+        setCsv(yes(properties.getProperty("csv")));
+        setRedis(yes(properties.getProperty("redis")));
 
         if (properties.containsKey("cache_path")) {
             setCachePath(properties.getProperty("cache_path"));
         }
 
+        if (properties.containsKey("redis_host")) {
+            setRedisHost(properties.getProperty("redis_host"));
+        }
+
+
+        if (properties.containsKey("redis_db")) {
+            int redisDB = parseUInt(properties.getProperty("redis_db"));
+
+            if(redisDB < 0) {
+                log.warn("Parameter 'redis_db' wasn't parsed correctly. Defaulting to 666.");
+            }
+            setRedisDB(redisDB >= 0 ? redisDB : this.redisDB);
+        }
+
+        if(redis) {
+            pool = new JedisPool(new JedisPoolConfig(), redisHost);
+        }
+
         // sets the cache lifetime. default value is 7.
         if (properties.containsKey("cache_lifetime_days")) {
-            Integer cacheLifeTimeDays;
+            int cacheLifeTimeDays = parseUInt(properties.getProperty("cache_lifetime_days"));
 
-            try {
-                cacheLifeTimeDays = Integer.parseInt(properties.getProperty("cache_lifetime_days"));
-            } catch (NumberFormatException e) {
-                cacheLifeTimeDays = null;
-            }
-
-            if (cacheLifeTimeDays == null || cacheLifeTimeDays <= 0) {
+            if (cacheLifeTimeDays <= 0) {
                 log.warn("Parameter 'cache_lifetime_days' wasn't parsed correctly. Defaulting to 7 days.");
-                cacheLifeTimeDays = 7;
             }
-
-            setCacheLifeTimeDays(cacheLifeTimeDays);
+            setCacheLifeTimeDays(cacheLifeTimeDays <= 0 ? 7 : cacheLifeTimeDays);
         }
     }
 
     public ScyllaConf(String filename) {
         Properties props = new Properties();
         InputStream ifs = null;
-        this.filename = filename;
         if(!(new File(filename).exists())) {
             log.warn("`/etc/scylla.properties` not found. You'll need to specify JDBC strings at runtime manually.");
             return;
@@ -135,11 +155,10 @@ public class ScyllaConf {
 
     // used only in tests.
     public ScyllaConf(Properties props) {
-        this.filename = "";
         init(props);
     }
 
-    public String getDefaultJDBCStringForSope(Scope scope) {
+    String getDefaultJDBCStringForSope(Scope scope) {
         switch (scope) {
             case HIVE:
                 return JDBCStrings.getOrDefault(HIVE, null);
@@ -154,7 +173,7 @@ public class ScyllaConf {
         }
     }
 
-    public void setDefaultJDBCStringForScope(Scope scope, String string) {
+    private void setDefaultJDBCStringForScope(Scope scope, String string) {
         JDBCStrings.put(scope, string);
     }
 
@@ -170,20 +189,16 @@ public class ScyllaConf {
         return cacheLifeTimeDays;
     }
 
-    public void setCacheLifeTimeDays(int cacheLifeTimeDays) {
+    private void setCacheLifeTimeDays(int cacheLifeTimeDays) {
         this.cacheLifeTimeDays = cacheLifeTimeDays;
     }
 
-    public String getCachePath() {
+    private String getCachePath() {
         return cachePath;
     }
 
-    public void setCachePath(String cachePath) {
+    private void setCachePath(String cachePath) {
         this.cachePath = cachePath;
-    }
-
-    public String getFilename() {
-        return filename;
     }
 
     public Boolean isCsv() {
@@ -192,5 +207,37 @@ public class ScyllaConf {
 
     public void setCsv(Boolean csv) {
         this.csv = csv;
+    }
+
+    private void setRedis(boolean redis) {
+        if(redis) {
+            log.info("Using Redis to cache. Query responsibly.");
+        }
+        this.redis = redis;
+    }
+
+    private void setRedisDB(int redisDB) {
+        this.redisDB = redisDB;
+    }
+
+    private void setRedisHost(String redisHost) {
+        this.redisHost = redisHost;
+    }
+
+    public Cache cache() throws CacheException {
+        if (redis) {
+            return new RedisCache(pool, redisDB);
+        } else {
+            return new FileSystemCache(getCachePath());
+        }
+    }
+
+    private boolean yes(String prop) {
+        if (prop != null) {
+            prop = prop.toLowerCase().trim();
+            return prop.equals("1") || prop.equals("true") || prop.equals("yes");
+        } else {
+            return false;
+        }
     }
 }

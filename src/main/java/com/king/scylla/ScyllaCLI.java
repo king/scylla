@@ -8,7 +8,6 @@ import com.king.scylla.meta.ScyllaConf;
 import com.king.scylla.meta.ScyllaException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.core.config.plugins.convert.TypeConverters;
 import org.json.JSONException;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -18,7 +17,6 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -32,11 +30,12 @@ public class ScyllaCLI {
     @Option(name = "--csv", usage = "--csv")
     private Boolean csv = null;
 
-    static final Logger log = LogManager.getLogger(ScyllaCLI.class.getName());
+    private final Logger log = LogManager.getLogger(ScyllaCLI.class.getName());
 
     private final ExecutorService pool = Executors.newFixedThreadPool(256);
 
-    public void run(String[] args) throws IOException, CmdLineException, ScyllaException {
+    @SuppressWarnings("InfiniteLoopStatement")
+    private void run(String[] args) throws IOException, CmdLineException, ScyllaException {
         CmdLineParser parser = new CmdLineParser(this);
 
         parser.parseArgument(args);
@@ -57,10 +56,7 @@ public class ScyllaCLI {
             Socket cs = ss.accept();
             cs.setSoTimeout(300000);
             log.debug("Cool, one client just connected!");
-            String name = String.format("Tentacle %d [%s, %s]", i,
-                    new Timestamp(System.currentTimeMillis()),
-                    cs.getInetAddress().toString()
-            );
+            String name = String.format("Tentacle %d [%s]", i, cs.getInetAddress().toString());
             new Thread(new Scylla(cs, pool, conf), name).start();
             i++;
         }

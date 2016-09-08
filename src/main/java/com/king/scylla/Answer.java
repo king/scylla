@@ -34,13 +34,13 @@ import java.sql.SQLException;
     This object has a Scala-ish style which I'll probably replicate elsewhere.
  */
 public class Answer {
-    protected JSONObject msg;
+    JSONObject msg;
 
-    public enum Status {DONE, PENDING, PEEK, LOCKED}
+    enum Status {DONE, PENDING, PEEK, LOCKED}
 
-    public enum PeekStatus {YES, NO, LOCKED}
+    enum PeekStatus {YES, NO, LOCKED}
 
-    protected Answer() {
+    Answer() {
         msg = new JSONObject();
     }
 
@@ -64,46 +64,46 @@ public class Answer {
         return this;
     }
 
-    public boolean hasErr() {
+    boolean hasErr() {
         return msg.has("err");
     }
 
-    public String getErr() {
+    String getErr() {
         return hasErr() ? msg.getString("err") : null;
     }
 
     // status of the query (pending, done, etc.; this value is never checked directly
-    public Answer status(Status status) {
+    Answer status(Status status) {
         msg.put("status", status.toString().toLowerCase());
         return this;
     }
 
     // this stores the peek result (yes: dataset available, no: no dataset available, pending: no dataset available but
     // there is a running query).
-    public Answer peek(PeekStatus peek) {
+    Answer peek(PeekStatus peek) {
         msg.put("peek", peek.toString().toLowerCase());
         return this;
     }
 
-    public Answer n(int rows) {
+    private Answer n(int rows) {
         msg.put("n", rows);
         return this;
     }
 
-    public Answer update(boolean update) {
+    Answer update(boolean update) {
         msg.put("update", update ? "yes" : "no");
         return this;
     }
 
-    public boolean isDone() {
+    boolean isDone() {
         return msg.has("res") || msg.has("n");
     }
 
-    public static Answer emptyAnswer() {
+    static Answer emptyAnswer() {
         return new Answer();
     }
 
-    public static Answer answerFromJSONObject(JSONObject jo) {
+    static Answer answerFromJSONObject(JSONObject jo) {
         return new Answer(jo);
     }
 
@@ -142,7 +142,7 @@ public class Answer {
             p.close();
             o.close();
 
-            throw new ScyllaException(e.getMessage());
+            throw new ScyllaException(e.getMessage(), e);
         }
 
         p.close();
@@ -193,7 +193,6 @@ public class Answer {
     public static Answer answerFromResultSet(QConfig qc, ResultSet rs)
             throws SQLException, JSONException, IOException, ScyllaException {
         JSONObject mo = new JSONObject();
-        Logger log = LogManager.getLogger(Answer.class.getName());
 
         ByteArrayOutputStream w = new ByteArrayOutputStream();
         Base64OutputStream b64os = new Base64OutputStream(w);
@@ -281,5 +280,13 @@ public class Answer {
         }
 
         return obj;
+    }
+
+    int resSize() {
+        if(msg.has("res")) {
+            return msg.getString("res").length();
+        } else {
+            return 0;
+        }
     }
 }

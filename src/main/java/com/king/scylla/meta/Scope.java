@@ -12,13 +12,12 @@ public enum Scope {
     REDSHIFT("redshift", "Redshift", true, "com.amazon.redshift.jdbc41.Driver"),
     IMPALA("impala", "Impala", false, "com.cloudera.impala.jdbc41.Driver");
 
-    private String shortName;
     private String name;
     private boolean needsPassword = false;
     private String connectorClass;
 
+    @SuppressWarnings("UnusedParameters")
     Scope(String shortName, String name, boolean needsPassword, String connectorClass) {
-        this.shortName = shortName;
         this.name = name;
         this.needsPassword = needsPassword;
         this.connectorClass = connectorClass;

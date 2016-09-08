@@ -61,7 +61,7 @@ public class QConfig {
         return scope;
     }
 
-    public void setScope(Scope scope) {
+    private void setScope(Scope scope) {
         this.scope = scope;
     }
 
@@ -73,7 +73,7 @@ public class QConfig {
         return password;
     }
 
-    public void setPassword(String password) {
+    private void setPassword(String password) {
         this.password = password;
     }
 
@@ -81,7 +81,7 @@ public class QConfig {
         return expire;
     }
 
-    public void setExpire(int expire) {
+    private void setExpire(int expire) {
         this.expire = expire;
     }
 
@@ -89,7 +89,7 @@ public class QConfig {
         return force;
     }
 
-    public void setForce(boolean force) {
+    private void setForce(boolean force) {
         this.force = force;
     }
 
@@ -97,7 +97,7 @@ public class QConfig {
         return quiet;
     }
 
-    public void setQuiet(boolean quiet) {
+    private void setQuiet(boolean quiet) {
         this.quiet = quiet;
     }
 
@@ -105,7 +105,7 @@ public class QConfig {
         return update;
     }
 
-    public void setUpdate(boolean update) {
+    private void setUpdate(boolean update) {
         this.update = update;
     }
 
@@ -113,10 +113,9 @@ public class QConfig {
         return hparams;
     }
 
-    public void setHParams(List<String> hparams) {
+    private void setHParams(List<String> hparams) {
         this.hparams = hparams;
     }
-
 
     public LogColouriser getLogColouriser() {
         return logColouriser;
@@ -130,7 +129,7 @@ public class QConfig {
         return peek;
     }
 
-    public void setPeek(boolean peek) {
+    private void setPeek(boolean peek) {
         this.peek = peek;
     }
 
@@ -146,7 +145,7 @@ public class QConfig {
         return errorMessage;
     }
 
-    public void setErrorMessage(String errorMessage) {
+    private void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
     }
 
@@ -162,6 +161,7 @@ public class QConfig {
         object.getBoolean(key);
     }
 
+    @SuppressWarnings("unused")
     private static void validateStringArrayParam(JSONObject object, String key) throws JSONException {
         object.getJSONArray(key);
 

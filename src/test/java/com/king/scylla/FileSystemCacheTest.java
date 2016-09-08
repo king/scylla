@@ -4,6 +4,8 @@
 
 package com.king.scylla;
 
+import com.king.scylla.cache.FileSystemCache;
+import com.king.scylla.cache.CacheException;
 import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Before;
@@ -25,7 +27,7 @@ public class FileSystemCacheTest {
     String path = "/tmp/test.scylla.fcache." + Math.abs(new Random().nextLong()) + "." + new Date().getTime();
 
     @Before
-    public void init() throws FileSystemCacheException {
+    public void init() throws CacheException {
         fc = new FileSystemCache(path);
     }
 
@@ -33,16 +35,16 @@ public class FileSystemCacheTest {
         return String.format("junit_test_%d_%d", new DateTime().getMillis(), new Random().nextLong());
     }
 
-    private void createElement(String k) throws IOException, FileSystemCacheException {
+    private void createElement(String k) throws IOException, CacheException {
         fc.set(k, "test");
     }
 
-    private void cleanElement(String k) throws IOException, FileSystemCacheException {
+    private void cleanElement(String k) throws IOException, CacheException {
         fc.delete(k);
     }
 
     @Test
-    public void basicFunctionalityTest() throws IOException, FileSystemCacheException {
+    public void basicFunctionalityTest() throws IOException, CacheException {
         String k = getRandomKey();
 
         createElement(k);
@@ -53,7 +55,7 @@ public class FileSystemCacheTest {
     }
 
     @Test
-    public void lockTest() throws IOException, FileSystemCacheException {
+    public void lockTest() throws IOException, CacheException {
         String k = getRandomKey();
 
         createElement(k);
