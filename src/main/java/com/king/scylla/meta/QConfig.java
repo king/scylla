@@ -281,7 +281,9 @@ public class QConfig {
                 qc.setHParams(hparams);
             }
 
-            logColouriser.init(qc.getQuery());
+            if (logColouriser != null) {
+                logColouriser.init(qc.getQuery());
+            }
         }
 
         return qc;
