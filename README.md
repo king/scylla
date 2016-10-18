@@ -109,7 +109,7 @@ Questions must be minified one-line JSON strings with a trailing newline:
     "expire": 86400,                 # (optional) default is one day
     "force": False,                  # (optional) tells scylla to ignore cached results: default is false
     "quiet": False,                  # (optional) to be used in loops to simulate synchronous querying: default is false
-    "update": False                  # (optional) for update statements, if true queries won't return data sets; default is false
+    "update": False,                 # (optional) for update statements, if true queries won't return data sets; default is false
     "jdbcstring": "jdbc:hive2://..." # (optional) JDBC string for the current query.
 }
 ```
@@ -117,8 +117,8 @@ Questions must be minified one-line JSON strings with a trailing newline:
 Query results are cached server-side with the defined `expire` parameter (there is a hard-coded cap of one week).
 
 Answers with a `res` field (like the one in the tiny example above) have the data set compressed (`bz2`) and encoded to
-base64. Decode, decompress and you'll get a [Pandas](http://pandas.pydata.org/)-friendly JSON object. Ideally, this
-piece of Python code is enough:
+base64. Decode, decompress and you'll get a [Pandas](http://pandas.pydata.org/)-friendly CSV or JSON object, depending
+on what the `format` field looks like. Ideally, this piece of Python code is enough:
 
 ```python
 import json
@@ -128,11 +128,8 @@ import base64
 import pandas as pd
 
 jr = json.loads(answer.decode("utf-8")) # where `answer` is scylla's answer straight from a socket (a byte string)
-res = json.loads(bz2.decompress(base64.b64decode(jr["res"])).decode("utf-8"))
-cols = jr["cols"]
-
-df = pd.DataFrame(res if res else None, columns=cols)  # scylla formats `res` so that pandas can already grab it.
-                                                       # `cols` is just a formality to have the columns pre-ordered.
+with io.StringIO(jr["res"]) as f:
+    df = pd.read_csv(io.StringIO(f), header=None, names=jr["cols"], sep="\t")
 ```
 
 Possible questions and answers

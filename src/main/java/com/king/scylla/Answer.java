@@ -121,7 +121,7 @@ public class Answer {
         Logger log = LogManager.getLogger(Answer.class.getName());
         LogColouriser logc = qc.getLogColouriser();
         OutputStreamWriter o = new OutputStreamWriter(bz, StandardCharsets.UTF_8);
-        CSVPrinter p = new CSVPrinter(o, CSVFormat.TDF.withQuoteMode(QuoteMode.MINIMAL).withNullString(""));
+        CSVPrinter p = new CSVPrinter(o, CSVFormat.TDF.withQuoteMode(QuoteMode.NON_NUMERIC).withNullString(""));
         long j = 0;
 
         try {
