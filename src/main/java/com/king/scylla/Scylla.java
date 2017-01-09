@@ -46,7 +46,8 @@ public class Scylla implements Runnable {
     private Socket socket;
 
     private String genKey(QConfig qc) {
-        return "scylla|" + qc.getJDBCString() + "|" + qc.getQuery();
+        String hparams = qc.getHParams() == null ? "" : qc.getHParams().toString();
+        return "scylla|" + qc.getJDBCString() + "|" + qc.getQuery() + "|" + hparams;
     }
 
     private String shorten(String query) {
