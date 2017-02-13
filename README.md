@@ -71,6 +71,8 @@ They're all optional and they can be overridden by setting `jdbcstring` explicit
 * `redshift_jdbcstring=...`
 * `impala_jdbcstring=...`
 
+`impala_jdbcstring` may take a placeholder for the username, to be specified as `UID=%s` in the configuration file.
+
 ### Other parameters
 
 Again, all optional.

@@ -134,7 +134,17 @@ public class QConfig {
     }
 
     public String getJDBCString() {
-        return JDBCString != null ? JDBCString : getConf().getDefaultJDBCStringForSope(scope);
+        if (JDBCString != null) {
+            return JDBCString;
+        } else {
+            String plh = "UID=%s";
+            String s = getConf().getDefaultJDBCStringForSope(scope);
+            if (scope != Scope.IMPALA || !s.contains(plh)) {
+                return s;
+            } else {
+                return s.replace(plh, String.format(plh, user));
+            }
+        }
     }
 
     private void setJDBCString(String JDBCString) {
