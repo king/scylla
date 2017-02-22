@@ -14,6 +14,8 @@ import java.io.IOException;
 import java.sql.*;
 
 import static com.king.scylla.VerificationAnswer.emptyVerificationAnswer;
+import static com.king.scylla.meta.Scope.HIVE;
+import static com.king.scylla.meta.Scope.IMPALA;
 
 public class DBConnector {
     final QConfig qc;
@@ -26,12 +28,51 @@ public class DBConnector {
         return DriverManager.getConnection(connectionString, qc.getUser(), qc.getPassword());
     }
 
-    public VerificationAnswer verifyQuery() throws SQLException, JSONException, ScyllaException {
+    private VerificationAnswer verifyQueryWithExplain() throws SQLException, ScyllaException {
+        try {
+            // Use EXPLAIN instead of preparing the statement.
+            String equery = "explain " + qc.getQuery();
+            Connection conn = getConnection();
+            PreparedStatement stmt = conn.prepareStatement(equery);
+            VerificationAnswer answer = new VerificationAnswer();
+            try {
+                boolean nobg = false;
+
+                if (qc.getHParams() != null) {
+                    for (String param : qc.getHParams()) {
+                        stmt.execute(param);
+                    }
+                }
+
+                ResultSet rs = stmt.executeQuery();
+                while (rs.next()) {
+                    String exp = rs.getString(1);
+                    if (exp.contains("Describe Table Operator") || exp.contains("Show Table Operator")) {
+                        nobg = true;
+                        break;
+                    }
+                }
+                answer.ok(true);
+                if (nobg) {
+                    answer.nobg(true);
+                }
+            } catch (SQLException e) {
+                answer.ok(false).err(e.getMessage());
+            }
+            conn.close();
+            return answer;
+        } catch (ClassNotFoundException e) {
+            throw new ScyllaException(qc.getScope().classNotFound());
+        }
+    }
+
+    private VerificationAnswer verifyQueryWithPreparedStatement() throws SQLException, ScyllaException {
         try {
             Connection conn = getConnection();
 
             VerificationAnswer answer = emptyVerificationAnswer();
             try {
+
                 Statement stmt = conn.createStatement();
                 if (qc.getHParams() != null) {
                     for (String param : qc.getHParams()) {
@@ -52,7 +93,16 @@ public class DBConnector {
         }
     }
 
-    private Answer getAnswerFromStatement(Statement stmt, boolean update)
+    public VerificationAnswer verifyQuery() throws SQLException, ScyllaException {
+        if (qc.getScope() == HIVE || qc.getScope() == IMPALA) {
+            return verifyQueryWithExplain();
+        }
+        else {
+            return verifyQueryWithPreparedStatement();
+        }
+    }
+
+        private Answer getAnswerFromStatement(Statement stmt, boolean update)
             throws SQLException, IOException, ScyllaException {
         if (update) {
             int n = stmt.executeUpdate(qc.getQuery());
@@ -92,7 +142,7 @@ public class DBConnector {
         this.connectionString = qc.getJDBCString();
         this.connectorClass = qc.getScope().getConnectorClass();
 
-        if(this.connectionString == null) {
+        if (this.connectionString == null) {
             throw new ScyllaException("No JDBC string provided explicitly and no default one configured.");
         }
     }

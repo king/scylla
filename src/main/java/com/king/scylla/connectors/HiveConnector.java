@@ -23,45 +23,6 @@ public class HiveConnector extends DBConnector {
     private static final Logger log = LogManager.getLogger(HiveConnector.class.getName());
 
     @Override
-    public VerificationAnswer verifyQuery() throws SQLException, JSONException, ScyllaException {
-        try {
-            // Use EXPLAIN instead of preparing the statement.
-            String equery = "explain " + qc.getQuery();
-            Connection conn = getConnection();
-            PreparedStatement stmt = conn.prepareStatement(equery);
-            VerificationAnswer answer = new VerificationAnswer();
-            try {
-                boolean nobg = false;
-
-                if (qc.getHParams() != null) {
-                    for (String param : qc.getHParams()) {
-                        stmt.execute(param);
-                    }
-                }
-
-                ResultSet rs = stmt.executeQuery();
-                while (rs.next()) {
-                    String exp = rs.getString(1);
-                    if (exp.contains("Describe Table Operator") || exp.contains("Show Table Operator")) {
-                        nobg = true;
-                        break;
-                    }
-                }
-                answer.ok(true);
-                if (nobg) {
-                    answer.nobg(true);
-                }
-            } catch (SQLException e) {
-                answer.ok(false).err(e.getMessage());
-            }
-            conn.close();
-            return answer;
-        } catch (ClassNotFoundException e) {
-            throw new ScyllaException(HIVE.classNotFound());
-        }
-    }
-
-    @Override
     public Answer query(boolean update) throws SQLException, JSONException, IOException, ScyllaException {
         try {
             Connection conn = getConnection();
