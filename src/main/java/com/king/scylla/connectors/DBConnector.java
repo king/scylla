@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.sql.*;
 
 import static com.king.scylla.VerificationAnswer.emptyVerificationAnswer;
-import static com.king.scylla.meta.Scope.HIVE;
+import static com.king.scylla.meta.Scope.*;
 
 public class DBConnector {
     final QConfig qc;
@@ -93,7 +93,7 @@ public class DBConnector {
     }
 
     public VerificationAnswer verifyQuery() throws SQLException, ScyllaException {
-        if (qc.getScope() == HIVE) {
+        if (qc.getScope() == HIVE || qc.getScope() == IMPALA) {
             return verifyQueryWithExplain();
         }
         else {

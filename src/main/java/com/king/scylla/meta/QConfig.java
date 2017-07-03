@@ -298,4 +298,9 @@ public class QConfig {
 
         return qc;
     }
+
+    public String getKey() {
+        String hparams = this.getHParams() == null ? "" : this.getHParams().toString();
+        return String.format("scylla|%s|%s|%s", this.getJDBCString(), this.getQuery(), hparams);
+    }
 }

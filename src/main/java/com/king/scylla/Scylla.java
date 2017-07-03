@@ -45,11 +45,6 @@ public class Scylla implements Runnable {
 
     private Socket socket;
 
-    private String genKey(QConfig qc) {
-        String hparams = qc.getHParams() == null ? "" : qc.getHParams().toString();
-        return "scylla|" + qc.getJDBCString() + "|" + qc.getQuery() + "|" + hparams;
-    }
-
     private String shorten(String query) {
         if (query.length() < 2000) {
             return escapeJson(query);
@@ -70,7 +65,7 @@ public class Scylla implements Runnable {
 
     private Answer getPeekAnswer(QConfig qc) throws CacheException {
         Cache fc = conf.cache();
-        String key = genKey(qc);
+        String key = qc.getKey();
 
         Answer peekAnswer = emptyAnswer().ok(true).status(PEEK);
 
@@ -94,7 +89,7 @@ public class Scylla implements Runnable {
         Cache fc = conf.cache();
         Scope scope = qc.getScope();
         String query = qc.getQuery();
-        String key = genKey(qc);
+        String key = qc.getKey();
 
         if (fc.exists(key) && !force) {
             if (fc.locked(key)) {
@@ -156,7 +151,7 @@ public class Scylla implements Runnable {
         log.info(logColouriser.cuteLog(qc.getUser(), String.format("Launching your %s.", logColouriser.colorise("query"))));
 
         Cache fc = conf.cache();
-        String key = genKey(qc);
+        String key = qc.getKey();
 
         Answer answer = emptyAnswer();
 
